@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Carnet de Route</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#10161B;
+    --surface:#1A2229;
+    --surface-2:#212B33;
+    --border:#2B363E;
+    --text:#E9E6DF;
+    --text-dim:#8C9AA3;
+    --ride:#C1483C;
+    --hike:#7A9E6E;
+    --gold:#D8A84E;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    padding:28px 20px 60px;
+  }
+  .wrap{max-width:960px;margin:0 auto;}
+  header{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:16px;margin-bottom:6px;}
+  h1{
+    font-family:'Space Grotesk',sans-serif;
+    font-weight:700;
+    font-size:34px;
+    margin:0;
+    letter-spacing:-0.01em;
+  }
+  .subtitle{color:var(--text-dim);font-size:13px;margin-top:4px;}
+  .sync-box{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+  select, button{
+    font-family:'Inter',sans-serif;
+    font-size:13px;
+    border-radius:7px;
+    border:1px solid var(--border);
+    background:var(--surface);
+    color:var(--text);
+    padding:9px 12px;
+    cursor:pointer;
+  }
+  button.primary{
+    background:var(--gold);
+    color:#1a1305;
+    border:none;
+    font-weight:600;
+  }
+  button.primary:hover{filter:brightness(1.08);}
+  button:disabled{opacity:0.5;cursor:default;}
+  button.ghost{background:transparent;}
+  .sync-note{font-size:11px;color:var(--text-dim);margin-top:6px;font-family:'IBM Plex Mono',monospace;}
+
+  /* elevation profile divider */
+  .profile-divider{width:100%;height:46px;margin:22px 0 24px;opacity:0.9;}
+
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:26px;}
+  .kpi{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;}
+  .kpi .label{font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.06em;}
+  .kpi .value{font-family:'IBM Plex Mono',monospace;font-size:22px;font-weight:600;margin-top:6px;}
+  .kpi .delta{font-size:12px;margin-top:4px;font-family:'IBM Plex Mono',monospace;}
+  .delta.up{color:var(--hike);}
+  .delta.down{color:var(--ride);}
+  .delta.flat{color:var(--text-dim);}
+
+  .tabs{display:flex;gap:6px;margin-bottom:18px;}
+  .tab{padding:7px 14px;border-radius:20px;border:1px solid var(--border);font-size:13px;cursor:pointer;background:transparent;color:var(--text-dim);}
+  .tab.active{background:var(--surface-2);color:var(--text);border-color:var(--text-dim);}
+
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px 18px 8px;margin-bottom:20px;}
+  .card h2{font-family:'Space Grotesk',sans-serif;font-size:16px;margin:0 0 12px;font-weight:600;}
+  .chart-wrap{position:relative;height:230px;}
+
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  th{text-align:left;color:var(--text-dim);font-weight:500;font-size:11px;text-transform:uppercase;letter-spacing:0.04em;padding:6px 8px;border-bottom:1px solid var(--border);}
+  td{padding:8px 8px;border-bottom:1px solid var(--border);font-family:'IBM Plex Mono',monospace;font-size:12.5px;}
+  tr:last-child td{border-bottom:none;}
+  .sport-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;}
+
+  .advice-card{border:1px solid var(--gold);background:linear-gradient(180deg, rgba(216,168,78,0.08), transparent);}
+  .advice-empty{color:var(--text-dim);font-size:13px;padding:6px 0 14px;}
+  .advice-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:10px;}
+  .advice-field .label{font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.05em;}
+  .advice-field .val{font-family:'Space Grotesk',sans-serif;font-size:17px;font-weight:600;margin-top:2px;}
+  .advice-text{font-size:14px;line-height:1.5;margin-top:8px;}
+  .advice-warn{font-size:12.5px;color:var(--gold);margin-top:10px;padding-top:10px;border-top:1px solid var(--border);}
+
+  .empty-state{text-align:center;padding:50px 20px;color:var(--text-dim);}
+  .empty-state button{margin-top:14px;}
+  .spinner{display:inline-block;width:13px;height:13px;border:2px solid rgba(255,255,255,0.3);border-top-color:var(--text);border-radius:50%;animation:spin .7s linear infinite;margin-right:6px;vertical-align:-2px;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+
+  footer{text-align:center;color:var(--text-dim);font-size:11px;margin-top:30px;font-family:'IBM Plex Mono',monospace;}
+
+  @media (max-width:640px){
+    .kpis{grid-template-columns:repeat(2,1fr);}
+    .advice-grid{grid-template-columns:1fr;}
+    h1{font-size:26px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div>
+      <h1>Carnet de Route</h1>
+      <div class="subtitle">Progression Vélo &amp; Randonnée — données Strava</div>
+    </div>
+    <div>
+      <div class="sync-box" id="loggedOutBox">
+        <button class="primary" id="connectBtn" onclick="connectStrava()">Se connecter à Strava</button>
+      </div>
+      <div class="sync-box" id="loggedInBox" style="display:none;">
+        <select id="periodSelect">
+          <option value="30">30 derniers jours</option>
+          <option value="60">60 derniers jours</option>
+          <option value="90">90 derniers jours</option>
+        </select>
+        <button class="primary" id="syncBtn" onclick="syncStrava()">Synchroniser</button>
+        <button class="ghost" onclick="disconnectStrava()">Déconnecter</button>
+      </div>
+      <div class="sync-note" id="syncNote">Non connecté</div>
+    </div>
+  </header>
+
+  <svg class="profile-divider" viewBox="0 0 960 46" preserveAspectRatio="none">
+    <polyline points="0,40 60,38 110,20 150,30 210,10 260,26 320,6 370,24 430,14 480,32 540,18 600,4 660,28 720,16 780,34 840,12 900,22 960,8"
+      fill="none" stroke="#D8A84E" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" opacity="0.55"/>
+    <circle cx="320" cy="6" r="3" fill="#D8A84E"/>
+    <circle cx="600" cy="4" r="3" fill="#D8A84E"/>
+    <circle cx="840" cy="12" r="3" fill="#D8A84E"/>
+  </svg>
+
+  <div id="emptyState" class="empty-state">
+    Aucune activité chargée pour l'instant.<br>Clique sur « Synchroniser » pour aller chercher tes sorties Strava.
+  </div>
+
+  <div id="dashboard" style="display:none;">
+
+    <div class="kpis" id="kpiRow"></div>
+
+    <div class="tabs">
+      <div class="tab active" data-sport="ALL" onclick="setFilter('ALL')">Tout</div>
+      <div class="tab" data-sport="R" onclick="setFilter('R')">Vélo</div>
+      <div class="tab" data-sport="H" onclick="setFilter('H')">Randonnée</div>
+      <div class="tab" data-sport="C" onclick="setFilter('C')">Course à pied</div>
+    </div>
+
+    <div class="card">
+      <h2>Distance &amp; dénivelé — par semaine</h2>
+      <div class="chart-wrap"><canvas id="chartVolume"></canvas></div>
+    </div>
+
+    <div class="card">
+      <h2>Effort ressenti &amp; vitesse moyenne — par semaine</h2>
+      <div class="chart-wrap"><canvas id="chartEffort"></canvas></div>
+    </div>
+
+    <div class="card">
+      <h2>Indice d'efficacité cardiaque — vélo</h2>
+      <div class="subtitle" style="margin:-8px 0 12px;">Vitesse ÷ FC moyenne. Une courbe qui monte = ton cœur travaille moins pour la même vitesse : le cardio s'améliore.</div>
+      <div class="chart-wrap"><canvas id="chartEFRide"></canvas></div>
+    </div>
+
+    <div class="card">
+      <h2>Indice d'efficacité cardiaque — course à pied</h2>
+      <div class="subtitle" style="margin:-8px 0 12px;">Même logique côté course : plus la courbe monte, moins ta FC est sollicitée à allure égale.</div>
+      <div class="chart-wrap"><canvas id="chartEFRun"></canvas></div>
+    </div>
+
+    <div class="card">
+      <h2>Répartition par zone de FC</h2>
+      <div class="subtitle" style="margin:-8px 0 12px;">Sur la période affichée. Pour baisser ta FC durablement, la base doit se construire majoritairement en endurance (Z1-2).</div>
+      <div id="zoneBars"></div>
+    </div>
+
+    <div class="card">
+      <h2>Séances récentes</h2>
+      <table>
+        <thead><tr><th>Date</th><th>Sport</th><th>Dist.</th><th>D+</th><th>Durée</th><th>Effort</th><th>FC moy.</th></tr></thead>
+        <tbody id="sessionsBody"></tbody>
+      </table>
+    </div>
+
+    <div class="card" style="border-color:var(--border);background:transparent;">
+      <h2 style="margin-bottom:6px;">Calibrer ta prochaine séance</h2>
+      <div class="advice-empty" style="padding:0 0 12px;">Pour un conseil calibré sur cette période, reviens en discuter directement dans le chat avec Claude — il peut lire ces mêmes données en direct et te conseiller avec plus de nuance qu'une génération automatique.</div>
+    </div>
+
+  </div>
+
+  <footer>Carnet de Route — usage personnel, données via Strava</footer>
+</div>
+
+<script>
+// ==== À personnaliser avant déploiement ====
+const CONFIG = {
+  STRAVA_CLIENT_ID: "276154",   // public, visible dans le code, pas de risque
+  API_URL: "https://strava-u2zo.onrender.com",        // URL de ton service Render (l'API Strava)
+};
+const REDIRECT_URI = window.location.origin + window.location.pathname;
+// ============================================
+
+let ACTIVITIES = [];
+let CURRENT_FILTER = 'ALL';
+let chartVolume, chartEffort, chartEFRide, chartEFRun;
+
+const SPORT_COLOR = {R:'#C1483C', H:'#7A9E6E', C:'#5E8FBF', O:'#8C9AA3'};
+const SPORT_LABEL = {R:'Vélo', H:'Randonnée', C:'Course à pied', O:'Autre'};
+
+// Zones de FC Strava (issues de get_athlete_zones — basées sur FC max)
+const HR_ZONES = [
+  {name:'Z1-2 Endurance', max:157, color:'#7A9E6E'},
+  {name:'Z3 Tempo', max:173, color:'#D8A84E'},
+  {name:'Z4-5 Intense', max:999, color:'#C1483C'},
+];
+function hrZoneOf(hr){
+  if(hr==null) return null;
+  return HR_ZONES.find(z=>hr<=z.max);
+}
+
+// ---- stockage local (remplace window.storage, indisponible hors artifact Claude) ----
+function lsGet(key){
+  try{ const v = localStorage.getItem(key); return v ? JSON.parse(v) : null; }catch(e){ return null; }
+}
+function lsSet(key, value){
+  try{ localStorage.setItem(key, JSON.stringify(value)); }catch(e){ /* stockage plein ou indisponible */ }
+}
+function lsRemove(key){ try{ localStorage.removeItem(key); }catch(e){} }
+
+function mapSport(sportType){
+  if(!sportType) return 'O';
+  if(/Ride/i.test(sportType)) return 'R';
+  if(/Run/i.test(sportType)) return 'C';
+  if(/Hike|Walk/i.test(sportType)) return 'H';
+  return 'O';
+}
+
+function connectStrava(){
+  const params = new URLSearchParams({
+    client_id: CONFIG.STRAVA_CLIENT_ID,
+    redirect_uri: REDIRECT_URI,
+    response_type: 'code',
+    approval_prompt: 'auto',
+    scope: 'activity:read_all',
+  });
+  window.location.href = `https://www.strava.com/oauth/authorize?${params.toString()}`;
+}
+
+function disconnectStrava(){
+  lsRemove('strava-tokens');
+  lsRemove('activities-cache');
+  ACTIVITIES = [];
+  updateAuthUI();
+  document.getElementById('emptyState').style.display='block';
+  document.getElementById('dashboard').style.display='none';
+}
+
+function updateAuthUI(){
+  const tokens = lsGet('strava-tokens');
+  document.getElementById('loggedOutBox').style.display = tokens ? 'none' : 'flex';
+  document.getElementById('loggedInBox').style.display = tokens ? 'flex' : 'none';
+}
+
+async function handleOAuthCallback(){
+  const params = new URLSearchParams(window.location.search);
+  const code = params.get('code');
+  if(!code) return false;
+
+  document.getElementById('syncNote').textContent = 'Connexion à Strava…';
+  try{
+    const res = await fetch(CONFIG.API_URL + '/exchange', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ code })
+    });
+    const data = await res.json();
+    if(!res.ok) throw new Error(JSON.stringify(data));
+    lsSet('strava-tokens', {
+      refresh_token: data.refresh_token,
+      access_token: data.access_token,
+      expires_at: data.expires_at,
+    });
+  }catch(err){
+    console.error(err);
+    document.getElementById('syncNote').textContent = "Échec de la connexion Strava.";
+  }
+  // Nettoie l'URL (retire ?code=...&scope=...)
+  window.history.replaceState({}, document.title, window.location.pathname);
+  return true;
+}
+
+async function loadCache(){
+  await handleOAuthCallback();
+  updateAuthUI();
+
+  const cached = lsGet('activities-cache');
+  if(cached && cached.activities){
+    ACTIVITIES = cached.activities;
+    document.getElementById('syncNote').textContent =
+      `${ACTIVITIES.length} activités — dernière synchro : ${new Date(cached.fetchedAt).toLocaleString('fr-FR')}`;
+    document.getElementById('emptyState').style.display='none';
+    document.getElementById('dashboard').style.display='block';
+    renderAll();
+  } else if(lsGet('strava-tokens')){
+    document.getElementById('syncNote').textContent = 'Connecté — clique sur Synchroniser';
+  }
+}
+
+async function syncStrava(){
+  const tokens = lsGet('strava-tokens');
+  if(!tokens){ connectStrava(); return; }
+
+  const btn = document.getElementById('syncBtn');
+  const days = parseInt(document.getElementById('periodSelect').value);
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Synchronisation…';
+  try{
+    const after = Math.floor((Date.now() - days*86400000)/1000);
+    const res = await fetch(CONFIG.API_URL + '/activities', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ refresh_token: tokens.refresh_token, after })
+    });
+    const data = await res.json();
+    if(!res.ok) throw new Error(JSON.stringify(data));
+
+    // Le refresh_token peut être renouvelé par Strava — on garde le dernier
+    lsSet('strava-tokens', {
+      refresh_token: data.refresh_token,
+      access_token: data.access_token,
+      expires_at: data.expires_at,
+    });
+
+    const parsed = (data.activities || []).map(a=>({
+      date: (a.start_date_local||'').slice(0,10),
+      sport: mapSport(a.sport_type || a.type),
+      distance_km: Math.round((a.distance/1000)*10)/10,
+      duree_min: Math.round(a.moving_time/60),
+      denivele_m: Math.round(a.total_elevation_gain||0),
+      effort: a.suffer_score!=null ? Math.round(a.suffer_score) : null,
+      fc_moy: a.has_heartrate && a.average_heartrate!=null ? Math.round(a.average_heartrate) : null,
+    })).filter(a=>a.date);
+
+    ACTIVITIES = parsed;
+    lsSet('activities-cache', { fetchedAt: Date.now(), activities: parsed });
+    document.getElementById('syncNote').textContent = `${parsed.length} activités — dernière synchro : ${new Date().toLocaleString('fr-FR')}`;
+    document.getElementById('emptyState').style.display='none';
+    document.getElementById('dashboard').style.display='block';
+    renderAll();
+  }catch(err){
+    console.error(err);
+    document.getElementById('syncNote').textContent = "Échec de la synchronisation. Réessaie.";
+  }finally{
+    btn.disabled = false;
+    btn.textContent = 'Synchroniser';
+  }
+}
+
+function setFilter(sport){
+  CURRENT_FILTER = sport;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.sport===sport));
+  renderAll();
+}
+
+function filtered(){
+  if(CURRENT_FILTER==='ALL') return ACTIVITIES;
+  return ACTIVITIES.filter(a=>a.sport===CURRENT_FILTER);
+}
+
+function isoWeekLabel(dateStr){
+  const d = new Date(dateStr+'T00:00:00');
+  const day = (d.getDay()+6)%7; // Monday = 0
+  const monday = new Date(d); monday.setDate(d.getDate()-day);
+  return monday.toISOString().slice(0,10);
+}
+
+function weeklyAggregate(acts){
+  const map = {};
+  acts.forEach(a=>{
+    const wk = isoWeekLabel(a.date);
+    if(!map[wk]) map[wk] = {distance:0, elevation:0, duree:0, count:0, effortSum:0, effortN:0, efRideSum:0, efRideN:0, efRunSum:0, efRunN:0};
+    map[wk].distance += a.distance_km;
+    map[wk].elevation += a.denivele_m;
+    map[wk].duree += a.duree_min;
+    map[wk].count += 1;
+    if(a.effort!=null){ map[wk].effortSum += a.effort; map[wk].effortN += 1; }
+    // indice d'efficacité cardiaque = vitesse (km/h) / FC moyenne — calculé séparément vélo / course
+    if(a.fc_moy && a.duree_min>0 && (a.sport==='R' || a.sport==='C')){
+      const speed = a.distance_km/(a.duree_min/60);
+      const ef = (speed/a.fc_moy)*100;
+      if(a.sport==='R'){ map[wk].efRideSum += ef; map[wk].efRideN += 1; }
+      else { map[wk].efRunSum += ef; map[wk].efRunN += 1; }
+    }
+  });
+  const weeks = Object.keys(map).sort();
+  return weeks.map(wk=>({
+    week: new Date(wk+'T00:00:00').toLocaleDateString('fr-FR',{day:'2-digit',month:'short'}),
+    distance: Math.round(map[wk].distance*10)/10,
+    elevation: map[wk].elevation,
+    avgSpeed: map[wk].duree>0 ? Math.round((map[wk].distance/(map[wk].duree/60))*10)/10 : 0,
+    avgEffort: map[wk].effortN>0 ? Math.round(map[wk].effortSum/map[wk].effortN) : null,
+    efficiencyRide: map[wk].efRideN>0 ? Math.round((map[wk].efRideSum/map[wk].efRideN)*100)/100 : null,
+    efficiencyRun: map[wk].efRunN>0 ? Math.round((map[wk].efRunSum/map[wk].efRunN)*100)/100 : null,
+  }));
+}
+
+function hrZoneBreakdown(acts){
+  const withHr = acts.filter(a=>a.fc_moy!=null);
+  const counts = {0:0,1:0,2:0};
+  withHr.forEach(a=>{
+    const idx = HR_ZONES.findIndex(z=>a.fc_moy<=z.max);
+    counts[idx]++;
+  });
+  const total = withHr.length || 1;
+  return HR_ZONES.map((z,i)=>({...z, pct: Math.round((counts[i]/total)*100), n:counts[i]}));
+}
+
+function sumRange(acts, fromDaysAgo, toDaysAgo){
+  const now = new Date();
+  const from = new Date(now.getTime()-fromDaysAgo*86400000);
+  const to = new Date(now.getTime()-toDaysAgo*86400000);
+  const inRange = acts.filter(a=>{
+    const d = new Date(a.date+'T00:00:00');
+    return d>=from && d<to;
+  });
+  const withHr = inRange.filter(a=>a.fc_moy!=null);
+  return {
+    distance: Math.round(inRange.reduce((s,a)=>s+a.distance_km,0)*10)/10,
+    elevation: inRange.reduce((s,a)=>s+a.denivele_m,0),
+    duree: inRange.reduce((s,a)=>s+a.duree_min,0),
+    count: inRange.length,
+    avgEffort: (()=>{
+      const withE = inRange.filter(a=>a.effort!=null);
+      return withE.length ? Math.round(withE.reduce((s,a)=>s+a.effort,0)/withE.length) : null;
+    })(),
+    avgHr: withHr.length ? Math.round(withHr.reduce((s,a)=>s+a.fc_moy,0)/withHr.length) : null,
+  };
+}
+
+function fmtDelta(cur, prev, invert){
+  if(prev===0 && cur===0) return {txt:'—', cls:'flat'};
+  if(prev===0) return {txt:'nouveau', cls:'up'};
+  const pct = Math.round(((cur-prev)/prev)*100);
+  if(pct===0) return {txt:'stable', cls:'flat'};
+  const good = invert ? pct<0 : pct>0;
+  return {txt:(pct>0?'+':'')+pct+'% vs période préc.', cls: good?'up':'down'};
+}
+
+function renderKPIs(acts){
+  const cur = sumRange(acts, 7, 0);
+  const prev = sumRange(acts, 14, 7);
+  const kpis = [
+    {label:'Distance (7j)', value: cur.distance+' km', delta: fmtDelta(cur.distance, prev.distance)},
+    {label:'Dénivelé (7j)', value: cur.elevation+' m', delta: fmtDelta(cur.elevation, prev.elevation)},
+    {label:'FC moyenne (7j)', value: cur.avgHr ? cur.avgHr+' bpm' : '—', delta: (cur.avgHr && prev.avgHr) ? fmtDelta(cur.avgHr, prev.avgHr, true) : {txt:'pas assez de données', cls:'flat'}},
+    {label:'Séances (7j)', value: cur.count, delta: fmtDelta(cur.count, prev.count)},
+  ];
+  document.getElementById('kpiRow').innerHTML = kpis.map(k=>`
+    <div class="kpi">
+      <div class="label">${k.label}</div>
+      <div class="value">${k.value}</div>
+      <div class="delta ${k.delta.cls}">${k.delta.txt}</div>
+    </div>`).join('');
+}
+
+function renderCharts(acts){
+  const weekly = weeklyAggregate(acts);
+  const labels = weekly.map(w=>w.week);
+
+  if(chartVolume) chartVolume.destroy();
+  if(chartEffort) chartEffort.destroy();
+  if(chartEFRide) chartEFRide.destroy();
+  if(chartEFRun) chartEFRun.destroy();
+
+  const ctxV = document.getElementById('chartVolume').getContext('2d');
+  chartVolume = new Chart(ctxV, {
+    data: {
+      labels,
+      datasets: [
+        {type:'bar', label:'Distance (km)', data: weekly.map(w=>w.distance), backgroundColor:'#C1483C', yAxisID:'y', borderRadius:4},
+        {type:'line', label:'Dénivelé (m)', data: weekly.map(w=>w.elevation), borderColor:'#D8A84E', backgroundColor:'#D8A84E', yAxisID:'y1', tension:0.3}
+      ]
+    },
+    options: chartOptions(true)
+  });
+
+  const ctxE = document.getElementById('chartEffort').getContext('2d');
+  chartEffort = new Chart(ctxE, {
+    data: {
+      labels,
+      datasets: [
+        {type:'bar', label:'Effort relatif moyen', data: weekly.map(w=>w.avgEffort), backgroundColor:'#7A9E6E', yAxisID:'y', borderRadius:4},
+        {type:'line', label:'Vitesse moy. (km/h)', data: weekly.map(w=>w.avgSpeed), borderColor:'#E9E6DF', backgroundColor:'#E9E6DF', yAxisID:'y1', tension:0.3}
+      ]
+    },
+    options: chartOptions(false)
+  });
+
+  const efRideWeeks = weekly.filter(w=>w.efficiencyRide!=null);
+  const ctxEFR = document.getElementById('chartEFRide').getContext('2d');
+  chartEFRide = new Chart(ctxEFR, {
+    type:'line',
+    data: {
+      labels: efRideWeeks.map(w=>w.week),
+      datasets: [{
+        label:'Indice d\'efficacité vélo (vitesse/FC ×100)',
+        data: efRideWeeks.map(w=>w.efficiencyRide),
+        borderColor:'#C1483C', backgroundColor:'rgba(193,72,60,0.15)',
+        fill:true, tension:0.3, pointRadius:3
+      }]
+    },
+    options: efChartOptions()
+  });
+
+  const efRunWeeks = weekly.filter(w=>w.efficiencyRun!=null);
+  const ctxEFC = document.getElementById('chartEFRun').getContext('2d');
+  chartEFRun = new Chart(ctxEFC, {
+    type:'line',
+    data: {
+      labels: efRunWeeks.map(w=>w.week),
+      datasets: [{
+        label:'Indice d\'efficacité course (vitesse/FC ×100)',
+        data: efRunWeeks.map(w=>w.efficiencyRun),
+        borderColor:'#5E8FBF', backgroundColor:'rgba(94,143,191,0.15)',
+        fill:true, tension:0.3, pointRadius:3
+      }]
+    },
+    options: efChartOptions()
+  });
+
+  renderZoneBars();
+}
+
+function efChartOptions(){
+  return {
+    responsive:true, maintainAspectRatio:false,
+    plugins:{ legend:{display:false} },
+    scales:{
+      x:{ ticks:{color:'#8C9AA3', font:{family:'IBM Plex Mono', size:10}}, grid:{color:'#2B363E'} },
+      y:{ ticks:{color:'#8C9AA3', font:{size:10}}, grid:{color:'#2B363E'} }
+    }
+  };
+}
+
+function renderZoneBars(){
+  const acts = filtered().filter(a=>a.sport==='R' || a.sport==='H' || a.sport==='C');
+  const zones = hrZoneBreakdown(acts);
+  const el = document.getElementById('zoneBars');
+  if(!zones.some(z=>z.n>0)){
+    el.innerHTML = '<div class="advice-empty" style="padding:4px 0;">Pas encore de données de FC sur cette période.</div>';
+    return;
+  }
+  el.innerHTML = zones.map(z=>`
+    <div style="margin-bottom:10px;">
+      <div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:4px;">
+        <span>${z.name}</span><span style="color:var(--text-dim);font-family:'IBM Plex Mono',monospace;">${z.pct}% · ${z.n} séance${z.n>1?'s':''}</span>
+      </div>
+      <div style="background:var(--surface-2);border-radius:5px;height:8px;overflow:hidden;">
+        <div style="width:${z.pct}%;height:100%;background:${z.color};"></div>
+      </div>
+    </div>`).join('');
+}
+
+function chartOptions(dualLabel){
+  return {
+    responsive:true, maintainAspectRatio:false,
+    interaction:{mode:'index', intersect:false},
+    plugins:{ legend:{labels:{color:'#8C9AA3', font:{family:'Inter', size:11}}} },
+    scales:{
+      x:{ ticks:{color:'#8C9AA3', font:{family:'IBM Plex Mono', size:10}}, grid:{color:'#2B363E'} },
+      y:{ position:'left', ticks:{color:'#8C9AA3', font:{size:10}}, grid:{color:'#2B363E'} },
+      y1:{ position:'right', ticks:{color:'#8C9AA3', font:{size:10}}, grid:{display:false} }
+    }
+  };
+}
+
+function renderTable(acts){
+  const rows = [...acts].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,12);
+  document.getElementById('sessionsBody').innerHTML = rows.map(a=>`
+    <tr>
+      <td>${new Date(a.date+'T00:00:00').toLocaleDateString('fr-FR',{day:'2-digit',month:'short'})}</td>
+      <td><span class="sport-dot" style="background:${SPORT_COLOR[a.sport]||SPORT_COLOR.O}"></span>${SPORT_LABEL[a.sport]||'Autre'}</td>
+      <td>${a.distance_km} km</td>
+      <td>${a.denivele_m} m</td>
+      <td>${Math.floor(a.duree_min/60)}h${String(a.duree_min%60).padStart(2,'0')}</td>
+      <td>${a.effort ?? '—'}</td>
+      <td>${a.fc_moy ? a.fc_moy+' bpm' : '—'}</td>
+    </tr>`).join('');
+}
+
+function renderAll(){
+  const acts = filtered();
+  renderKPIs(acts);
+  renderCharts(acts);
+  renderTable(acts);
+}
+
+loadCache();
+</script>
+</body>
+</html>
