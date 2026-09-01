@@ -1,0 +1,15 @@
+{
+  "name": "carnet-de-route-api",
+  "version": "1.0.0",
+  "description": "API Strava minimale pour le Carnet de Route (échange OAuth + récupération d'activités)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}
